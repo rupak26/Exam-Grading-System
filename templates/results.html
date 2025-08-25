@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Results – {{ exam.title }}{% endblock %}
+{% block content %}
+<header>Results for {{ exam.title }}</header>
+<main>
+  <div class="card">
+    <h3>Students' Scores</h3>
+    {% if students %}
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Answer Sheets</th></tr></thead>
+      <tbody>
+      {% for sid, data in students.items() %}
+        <tr>
+          <td>{{ sid }}</td>
+          <td>{{ data.name }}</td>
+          <td>
+            {% if data.sheets %}
+            <ul>
+              {% for sheet in data.sheets %}
+                <li><a href="/answer_sheets/{{ sheet.id }}">Sheet {{ sheet.id }} – {{ sheet.total_score }} pts</a></li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            No uploads
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No students found.</p>
+    {% endif %}
+  </div>
+  <div class="card">
+    <p><a href="/exams/{{ exam.id }}"><button>Back to Exam</button></a>
+       <a href="/exams/{{ exam.id }}/export"><button>Export CSV</button></a></p>
+  </div>
+</main>
+{% endblock %}

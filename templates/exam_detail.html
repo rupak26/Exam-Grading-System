@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Exam {{ exam.title }}{% endblock %}
+{% block content %}
+<header>Exam: {{ exam.title }} ({{ exam.subject }})</header>
+<main>
+  <div class="card">
+    <h2>Exam Information</h2>
+    <p>{{ exam.instructions or 'No instructions provided.' }}</p>
+  </div>
+
+  <div class="flex">
+    <!-- Questions -->
+    <div class="flex-1 card">
+      <h3>Questions</h3>
+      {% if questions %}
+      <table>
+        <thead><tr><th>#</th><th>Question</th><th>Ideal Answer</th><th>Points</th></tr></thead>
+        <tbody>
+        {% for q in questions %}
+        <tr>
+          <td>{{ q.id }}</td>
+          <td>{{ q.text }}</td>
+          <td>{{ q.ideal_answer }}</td>
+          <td>{{ q.point_value }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No questions added yet.</p>
+      {% endif %}
+      <h4>Add Question</h4>
+      <form action="/exams/{{ exam.id }}/questions" method="post">
+        <label for="text">Question Text</label>
+        <textarea name="text" id="text" required rows="3"></textarea>
+        <label for="ideal_answer">Ideal Answer</label>
+        <textarea name="ideal_answer" id="ideal_answer" required rows="3"></textarea>
+        <label for="point_value">Point Value</label>
+        <input type="number" name="point_value" id="point_value" step="0.1" value="1" required>
+        <input type="submit" value="Add Question">
+      </form>
+    </div>
+
+    <!-- Students -->
+    <div class="flex-1 card">
+      <h3>Students</h3>
+      {% if students %}
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>Uploads</th></tr></thead>
+        <tbody>
+        {% for s in students %}
+        <tr>
+          <td>{{ s.id }}</td>
+          <td>{{ s.name }}</td>
+          <td>{{ sheet_counts[s.id] }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No students added yet.</p>
+      {% endif %}
+      <h4>Add Student</h4>
+      <form action="/exams/{{ exam.id }}/students" method="post">
+        <label for="name">Name</label>
+        <input type="text" name="name" id="name" required>
+        <input type="submit" value="Add Student">
+      </form>
+    </div>
+  </div>
+
+  <!-- Upload Answer Sheet -->
+  <div class="card">
+    <h3>Upload Answer Sheet</h3>
+    {% if students %}
+    <form action="/exams/{{ exam.id }}/upload" method="post" enctype="multipart/form-data">
+      <label for="student_id">Select Student</label>
+      <select name="student_id" id="student_id" required>
+        {% for s in students %}
+        <option value="{{ s.id }}">{{ s.name }}</option>
+        {% endfor %}
+      </select>
+      <label for="file">PDF File</label>
+      <input type="file" name="file" id="file" accept="application/pdf" required>
+      <input type="submit" value="Upload & Evaluate">
+    </form>
+    {% else %}
+    <div class="alert">Please add at least one student before uploading answer sheets.</div>
+    {% endif %}
+  </div>
+
+  <!-- View Results -->
+  <div class="card">
+    <h3>Results</h3>
+    <p>After uploading sheets, you can view evaluation results.</p>
+    <p><a href="/exams/{{ exam.id }}/results"><button>View Results</button></a></p>
+  </div>
+</main>
+{% endblock %}

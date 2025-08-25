@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Sheet {{ sheet.id }} – {{ sheet.student_name }}{% endblock %}
+{% block content %}
+<header>Answer Sheet {{ sheet.id }}</header>
+<main>
+  <div class="card">
+    <p><strong>Student:</strong> {{ sheet.student_name }}</p>
+    <p><strong>Exam:</strong> {{ sheet.exam_title }}</p>
+    <p><strong>Uploaded File:</strong> <a href="/answer_sheets/{{ sheet.id }}/download">Download PDF</a></p>
+    <p><strong>Total Score:</strong> {{ sheet.total_score }}</p>
+    <p><strong>Evaluated At:</strong> {{ sheet.evaluated_at }}</p>
+  </div>
+  <div class="card">
+    <h3>Question Breakdown</h3>
+    {% if evaluations %}
+    <table>
+      <thead><tr><th>#</th><th>Question</th><th>Ideal Answer</th><th>Student Answer</th><th>Score</th></tr></thead>
+      <tbody>
+        {% for eval in evaluations %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ eval.question_text }}</td>
+          <td>{{ eval.ideal_answer }}</td>
+          <td>{{ eval.student_answer }}</td>
+          <td>{{ eval.score }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No evaluation details available.</p>
+    {% endif %}
+  </div>
+  <div class="card">
+    <p><a href="/exams/{{ exam_id }}/results"><button>Back to Results</button></a></p>
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Grade Buddy – Exams{% endblock %}
+{% block content %}
+<header>
+  Grade Buddy
+</header>
+<main>
+  <div class="card">
+    <h2>Exams</h2>
+    <p>Below is a list of existing exams.  You can create a new one or
+       click an exam to manage its questions, students and answer sheets.</p>
+    <p><a href="/exams/new"><button>Create New Exam</button></a></p>
+    {% if exams %}
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Title</th><th>Subject</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for exam in exams %}
+        <tr>
+          <td>{{ exam.id }}</td>
+          <td>{{ exam.title }}</td>
+          <td>{{ exam.subject }}</td>
+          <td><a href="/exams/{{ exam.id }}">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No exams have been created yet.</p>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

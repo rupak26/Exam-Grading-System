@@ -1,0 +1,109 @@
+/* Basic styling inspired by the shadcn UI aesthetic.
+   This stylesheet keeps things clean and minimal: generous white
+   space, subtle borders and a muted colour palette.  Feel free to
+   enhance the look further or replace this entirely with your own
+   design. */
+
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f9fafb;
+  color: #333;
+}
+
+header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+main {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+th, td {
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+th {
+  background-color: #f3f4f6;
+}
+
+form {
+  margin-bottom: 1rem;
+}
+
+input[type="text"], textarea, input[type="number"], select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+input[type="submit"], button {
+  background-color: #2563eb;
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+input[type="submit"]:hover, button:hover {
+  background-color: #1d4ed8;
+}
+
+a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.alert {
+  padding: 0.5rem;
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+}
+
+.card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.flex {
+  display: flex;
+  gap: 1rem;
+}
+
+.flex-column {
+  flex-direction: column;
+}
+
+.flex-1 {
+  flex: 1;
+}
