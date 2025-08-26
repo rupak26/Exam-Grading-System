@@ -3,6 +3,8 @@ fastapi~=0.116.0
 uvicorn~=0.35.0
 pydantic~=2.11.0
 
+pdf2image
+
 # PDF Processing
 PyMuPDF~=1.26.0
 

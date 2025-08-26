@@ -1,13 +1,13 @@
 from datetime import datetime
 from pathlib import Path
-from rapidfuzz import fuzz
 from dotenv import load_dotenv
 from PIL import Image 
 from ..configuration.database_config import get_db_connection
 from ..configuration.florence2_configuration import processor , model 
 from langchain_community.llms import Replicate
+
 from pdf2image import convert_from_path
-import fitz
+
 import replicate , os
 import json
 import time
@@ -27,7 +27,7 @@ client = replicate.Client(api_token=os.getenv("REPLICATE_API_TOKEN"))
 # Utility functions       #
 ###########################
 
-# USE FLORENCE HERE
+# USE FLORENCE HERE 
 
 def run_example(image , task_prompt, text_input=None):
     
