@@ -23,13 +23,14 @@ the interface.
 import os
 import shutil
 import sqlite3
+import uvicorn
 
 from fastapi import FastAPI 
 from datetime import datetime
 from pathlib import Path
 
 from .configuration.database_config import get_db_connection , initialise_database
-from .contollers import routers
+from .controllers import routers
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
@@ -59,3 +60,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 app.include_router(routers.router)
+
+
+if __name__ == "__main__":
+    uvicorn.run("src.main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))

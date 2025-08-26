@@ -10,6 +10,7 @@ from pdf2image import convert_from_path
 import fitz
 import replicate , os
 import json
+import time
 
 
 load_dotenv() 
@@ -75,7 +76,7 @@ def extract_text_from_pdf(pdf_path: Path) -> str:
     #large_extracted_student_text = []
 
     for i, img in enumerate(images):
-        image_path = os.path.join(images_from_pdf, f"page_{i}.png")
+        image_path = os.path.join(images_from_pdf, f"page_{int(time.time())}{i}.png")
         img.save(image_path, "PNG")
         value = extract_with_paddleocr(image_path)
         ocr_data = value["<OCR_WITH_REGION>"]
