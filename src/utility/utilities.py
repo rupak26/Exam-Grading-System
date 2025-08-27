@@ -80,6 +80,9 @@ def extract_text_from_pdf(pdf_path: Path) -> str:
         img.save(image_path, "PNG")
         value = extract_with_paddleocr(image_path)
         ocr_data = value["<OCR_WITH_REGION>"]
+        print("=========================================================")
+        print(ocr_data)
+        print("=========================================================")
         answers =  ocr_data["labels"]
         #CONFUGED HERE
         #large_extracted_student_text.append(answers)
@@ -178,6 +181,7 @@ def evaluate_answer_sheet(pdf_path: Path , answer_sheet_id: int) -> None:
     
     # pdf_path = Path(__file__).parent / "uploads" / sheet["filename"]
     extracted_text = extract_text_from_pdf(pdf_path)
+
     # Fetch questions for the exam 
     # for page in extracted_text:
     #     answers = " ".join(page)
@@ -200,6 +204,7 @@ def evaluate_answer_sheet(pdf_path: Path , answer_sheet_id: int) -> None:
     for question, student_answer in zip(questions, answers):
         # Work Here Need to be done 
         print("==========================================================")
+        student_answer = student_answer.replace("</s>", "").replace("<s>", "").strip()
         print(question , student_answer)
         print("==========================================================")
         score = evaluate_answer(student_answer, question["ideal_answer"], question["point_value"])
