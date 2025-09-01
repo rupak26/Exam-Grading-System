@@ -34,6 +34,8 @@ from .controllers import routers
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
+
+import psutil
 # RapidFuzz provides efficient string similarity functions.  It's
 # installed in the environment by default.
 # from rapidfuzz import fuzz
@@ -61,6 +63,25 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 app.include_router(routers.router)
 
+@app.get("/server-stats")
+def server_stats():
+    cpu = psutil.cpu_percent(interval=1)
+    memory = psutil.virtual_memory()
+    return {
+        "cpu_percent": cpu,
+        "memory_used_mb": memory.used / (1024 * 1024),
+        "memory_available_mb": memory.available / (1024 * 1024),
+        "total_memory_mb": memory.total / (1024 * 1024)
+    }
+
+@app.get("/cpu-info")
+def cpu_info():
+    return {
+        "logical_cpus": psutil.cpu_count(),
+        "physical_cores": psutil.cpu_count(logical=False),
+        "cpu_usage_per_core": psutil.cpu_percent(percpu=True, interval=1),
+        "total_cpu_usage": psutil.cpu_percent(interval=1)
+    }
 
 if __name__ == "__main__":
     uvicorn.run("src.main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
