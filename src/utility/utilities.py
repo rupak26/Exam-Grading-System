@@ -456,11 +456,14 @@ def extract_text_from_pdf(pdf_path: Path) -> list:
         try:
             value = extract_with_paddleocr(image_path)
             print(f"Raw OCR result for page {i+1}: {value}")
-            if value:
-                # Clean the text - remove special tokens and extra spaces
-                value.replace("</s>", "").replace("<s>", "").strip()
-                # cleaned_text = ' '.join(cleaned_text.split())  # Remove extra whitespace
-
+            # if value:
+            #     text = str(value)
+            #     # Clean the text - remove special tokens and extra spaces
+            #     cleaned_text = text.replace("</s>", "").replace("<s>", "").strip()
+            #     cleaned_text = ' '.join(cleaned_text.split())
+            #     # value.replace("</s>", "").replace("<s>", "").strip()
+            #     # cleaned_text = ' '.join(cleaned_text.split())  # Remove extra whitespace
+            
             if "<OCR_WITH_REGION>" not in value:
                 print(f"Warning: Page {i+1} missing OCR_WITH_REGION key")
                 continue
