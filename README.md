@@ -34,7 +34,7 @@ palette.
 2.  Create the database and start the web server:
 
     ```bash
-    python grade_buddy_ai/main.py
+    uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
     ```
 
     This will start a server on `http://127.0.0.1:8000/`.  Navigate
@@ -44,61 +44,135 @@ palette.
 
 ## Integrating a real AI model
 
-The current scoring logic lives in `grade_buddy_ai/main.py` in the
-function `evaluate_answer`.  It uses the RapidFuzz library to compute
-a simple similarity metric between the student's answer and the ideal
-answer.  To use a large language model instead (for example the
-Florence 2 Large model on Replicate), replace the body of
-`evaluate_answer` with a call to your model.  You might construct a
-prompt like this:
+core login in src/utility/utility.py:
 
-```python
-import replicate
+You have to use Useing two AI models 
 
-def evaluate_answer(student_answer: str, ideal_answer: str, point_value: float) -> float:
-    # Compose a prompt that asks the model to grade the student's
-    # response.  Include instructions about the grading rubric and
-    # format.  Adjust according to your model's API.
-    prompt = f"""
-    You are grading a short answer question.  The ideal answer is:
-    "{ideal_answer}"
+   * Florence-2: For OCR and text extraction from scanned answer sheets
 
-    The student's answer is:
-    "{student_answer}"
+   * LLaMA 3 8B Instruct: For evaluating and grading student answers against ideal answers
 
-    Respond with a single number between 0 and {point_value} representing
-    the score.  Do not provide explanations, only the number.
-    """
-    output = replicate.run(
-        "meta/florence-2-large",  # specify the correct model slug
-        input={"prompt": prompt}
-    )
-    # The API will return a string; convert to float
-    try:
-        return float(output.strip())
-    except Exception:
-        return 0.0
+
+# Core Functions
+  1. Text Extraction with Florence-2
+    extract_with_paddleocr(image_path: str) -> str
+
+    Converts PDF pages to images using pdf2image
+
+    Processes each image with Florence-2 model
+
+    Uses <OCR_WITH_REGION> task prompt for optimized text extraction
+
+    Returns structured OCR data with bounding boxes and text labels
+
+    Key Features:
+
+    Handles multi-page PDF documents
+
+    Automatic cleanup of temporary image files
+
+    Robust error handling for corrupted pages
+
+    Returns both text content and spatial information
+
+2. Answer Evaluation with LLaMA
+    evaluate_answer(student_answer: str, ideal_answer: str, point_value: float) -> float
+
+    Uses LLaMA 3 8B Instruct model via Replicate API
+
+    Compares student answers against ideal answers
+
+    Returns numerical score based on point value
+
+    Includes strict prompt engineering for consistent grading
+
+## Grading Prompt Structure:
 ```
+  prompt = f"""
+  You are grading a short answer question. The ideal answer is:
+  "{ideal_answer}"
+
+  The student's answer is:
+  "{student_answer}"
+
+  Respond with a single number between 0 and {point_value} representing
+  the score. Do not provide explanations, only the number.
+"""
+```
+
+## Workflow:
+
+    PDF Processing: Converts PDF to individual page images
+
+    Text Extraction: Uses Florence-2 to extract answers from each page
+
+    Answer Matching: Aligns extracted answers with database questions
+
+    AI Grading: Evaluates each answer using LLaMA model
+
+    Results Storage: Saves scores to database with timestamps
+
+## Database Operations:
+
+    Updates answers table with individual question scores
+
+    Updates answer_sheets table with total score and evaluation timestamp
+
+    Maintains referential integrity with student and exam data
+
+## Model Configuration
+   
+   Florence-2 Setup
+   ```
+   # Located in configuration/florence2_configuration.py
+    processor = AutoProcessor.from_pretrained("microsoft/Florence-2-large", trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-large", trust_remote_code=True, torch_dtype=torch.bfloat16)
+   ```
+   LLaMA Configuration
+    Model: meta/meta-llama-3-8b-instruct
+
+    Access: Via Replicate API with secure token authentication
+
+    Output: Strict numerical scoring only
+
 
 You will need to set your Replicate API token in the environment
 variable `REPLICATE_API_TOKEN` before running the server.  See the
 [Replicate documentation](https://replicate.com) for details.
 
-## Limitations
 
-* **No external dependencies can be installed.**  This environment
-  does not allow `pip install` from the internet.  That is why this
-  project uses FastAPI instead of Django and parses multipart form data
-  manually.  When deploying on your own machine you can switch back
-  to Django and install `python-multipart` to simplify form handling.
-* **OCR quality.**  Text extraction uses PyMuPDF, which works well on
-  typed PDFs.  For handwritten answers you may need to integrate an
-  OCR engine (such as Tesseract or an AI model) to convert images to
-  text before evaluation.
-* **PDF segmentation.**  The function `split_answers` naively divides
-  the extracted text into equal chunks.  Exams with varying answer
-  lengths may require a more sophisticated segmentation strategy.
+## API Endpoints List
+   Dashboard & Navigation
+   ```
+    GET / - Home page listing all exams
 
-Despite these limitations, Grade Buddy AI demonstrates how to put
-exam grading on autopilot.  Feel free to extend it to suit your
-needs.
+    GET /exams/new - Create exam form
+   ``` 
+
+   Exam Management
+   ```
+    POST /exams/new - Create new exam
+
+    GET /exams/{exam_id} - Get exam details
+
+    POST /exams/{exam_id}/questions - Add question to exam
+
+    POST /exams/{exam_id}/students - Add student to exam
+   ```
+
+   Answer Sheet Management
+   ```
+    POST /exams/{exam_id}/upload - Upload answer sheet PDF
+
+    GET /answer_sheets/{sheet_id}/download - Download answer sheet PDF
+
+    GET /answer_sheets/{sheet_id} - Get answer sheet details
+   ```
+
+   Results & Reporting
+  ```
+    GET /exams/{exam_id}/results - View exam results
+
+    GET /exams/{exam_id}/export - Export results as CSV
+  ```
+
