@@ -55,80 +55,84 @@ You have to use Useing two AI models
 
 # Core Functions
   1. Text Extraction with Florence-2
-    extract_with_paddleocr(image_path: str) -> str
 
-    Converts PDF pages to images using pdf2image
+    * extract_with_paddleocr(image_path: str) -> str
 
-    Processes each image with Florence-2 model
+    * Converts PDF pages to images using pdf2image
 
-    Uses <OCR_WITH_REGION> task prompt for optimized text extraction
+    * Processes each image with Florence-2 model
 
-    Returns structured OCR data with bounding boxes and text labels
+    * Uses <OCR_WITH_REGION> task prompt for optimized text extraction
 
-    Key Features:
+    * Returns structured OCR data with bounding boxes and text labels
 
-    Handles multi-page PDF documents
+  2. Key Features:
 
-    Automatic cleanup of temporary image files
+    * Handles multi-page PDF documents
 
-    Robust error handling for corrupted pages
+    * Automatic cleanup of temporary image files
 
-    Returns both text content and spatial information
+    * Robust error handling for corrupted pages
 
-2. Answer Evaluation with LLaMA
-    evaluate_answer(student_answer: str, ideal_answer: str, point_value: float) -> float
+    * Returns both text content and spatial information
 
-    Uses LLaMA 3 8B Instruct model via Replicate API
+  3. Answer Evaluation with LLaMA
+    
+    * evaluate_answer(student_answer: str, ideal_answer: str, point_value: float) -> float
 
-    Compares student answers against ideal answers
+    * Uses LLaMA 3 8B Instruct model via Replicate API
 
-    Returns numerical score based on point value
+    * Compares student answers against ideal answers
 
-    Includes strict prompt engineering for consistent grading
+    * Returns numerical score based on point value
+
+    * Includes strict prompt engineering for consistent grading
 
 ## Grading Prompt Structure:
 ```
   prompt = f"""
-  You are grading a short answer question. The ideal answer is:
-  "{ideal_answer}"
+    You are grading a short answer question. The ideal answer is:
+    "{ideal_answer}"
 
-  The student's answer is:
-  "{student_answer}"
+    The student's answer is:
+    "{student_answer}"
 
-  Respond with a single number between 0 and {point_value} representing
-  the score. Do not provide explanations, only the number.
-"""
+    Respond with a single number between 0 and {point_value} representing
+    the score. Do not provide explanations, only the number.
+  """
 ```
 
 ## Workflow:
 
-    PDF Processing: Converts PDF to individual page images
+  *  PDF Processing: Converts PDF to individual page images
 
-    Text Extraction: Uses Florence-2 to extract answers from each page
+  *  Text Extraction: Uses Florence-2 to extract answers from each page
 
-    Answer Matching: Aligns extracted answers with database questions
+  *  Answer Matching: Aligns extracted answers with database questions
 
-    AI Grading: Evaluates each answer using LLaMA model
+  *  AI Grading: Evaluates each answer using LLaMA model
 
-    Results Storage: Saves scores to database with timestamps
+  *  Results Storage: Saves scores to database with timestamps
 
 ## Database Operations:
 
-    Updates answers table with individual question scores
+  *  Updates answers table with individual question scores
 
-    Updates answer_sheets table with total score and evaluation timestamp
+  *  Updates answer_sheets table with total score and evaluation timestamp
 
-    Maintains referential integrity with student and exam data
+  *  Maintains referential integrity with student and exam data
 
 ## Model Configuration
    
    Florence-2 Setup
-   ```
    # Located in configuration/florence2_configuration.py
+   ```
     processor = AutoProcessor.from_pretrained("microsoft/Florence-2-large", trust_remote_code=True)
+    
     model = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-large", trust_remote_code=True, torch_dtype=torch.bfloat16)
    ```
-   LLaMA Configuration
+  # LLaMA Configuration
+  
     Model: meta/meta-llama-3-8b-instruct
 
     Access: Via Replicate API with secure token authentication
