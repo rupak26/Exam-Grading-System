@@ -125,14 +125,14 @@ You have to use Useing two AI models
 ## Model Configuration
    
    Florence-2 Setup
-   # Located in configuration/florence2_configuration.py
+   Located in configuration/florence2_configuration.py
    ```
     processor = AutoProcessor.from_pretrained("microsoft/Florence-2-large", trust_remote_code=True)
     
     model = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-large", trust_remote_code=True, torch_dtype=torch.bfloat16)
    ```
   # LLaMA Configuration
-  
+
     Model: meta/meta-llama-3-8b-instruct
 
     Access: Via Replicate API with secure token authentication
