@@ -1,6 +1,6 @@
-# Grade Buddy AI
+# Exam-Grading-System
 
-Grade Buddy AI is a lightweight, self‑contained exam grading tool.  It
+Exam-Grading-System is a lightweight, self‑contained exam grading tool.  It
 allows educators to create exams, add questions and students, upload
 PDF answer sheets and receive automated scoring.  The backend is
 implemented with FastAPI and SQLite using only packages available in
