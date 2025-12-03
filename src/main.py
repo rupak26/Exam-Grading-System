@@ -24,23 +24,18 @@ import os
 import shutil
 import sqlite3
 import uvicorn
+import logging
 
 from fastapi import FastAPI 
 from datetime import datetime
 from pathlib import Path
 
-from ..configuration.database_config import get_db_connection , initialise_database
-from controllers import routers
+from ..configuration.database_config import initialise_database
+from ..configuration.logging_config import setup_logging
+from .controllers import routes
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
-
-# RapidFuzz provides efficient string similarity functions.  It's
-# installed in the environment by default.
-# from rapidfuzz import fuzz
-
-# PyMuPDF (imported as fitz) allows us to extract text from PDF files.
-# import fitz
 
 
 ###########################
@@ -48,6 +43,10 @@ from starlette.templating import Jinja2Templates
 ###########################
 
 # Initialise the database when the module is first imported.
+
+setup_logging()
+logger = logging.getLogger(__name__)
+
 initialise_database()
 
 app = FastAPI()

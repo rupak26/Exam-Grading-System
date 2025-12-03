@@ -1,16 +1,22 @@
 from configuration.database_config import get_cursor
 from fastapi.responses import RedirectResponse, FileResponse , HTMLResponse
+import logging 
+logger = logging.getLogger("repository.blog")
 
 async def create_exams_repo(title , subject , instructions):
-    conn , cursor = get_cursor()
-    cursor.execute(
-    "INSERT INTO exams (title, subject, instructions) VALUES (%s, %s, %s)",
-    (title, subject, instructions),
-    )
-    exam_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
-    return RedirectResponse(url=f"/exams/{exam_id}", status_code=303)
+    try:
+        conn , cursor = get_cursor()
+        cursor.execute(
+        "INSERT INTO exams (title, subject, instructions) VALUES (%s, %s, %s)",
+        (title, subject, instructions),
+        )
+        exam_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return RedirectResponse(url=f"/exams/{exam_id}", status_code=303)
+    except Exception as e:
+        logger.error(f"Error is {e}")
+        return None
 
 async def get_exams(exam_id):
     conn , cursor = get_cursor()
