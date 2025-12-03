@@ -1,0 +1,26 @@
+dev:
+  db:
+    name: Exam_grading
+    user: postgres
+    password: 1234
+    port: 5431
+    host: localhost
+  log:
+    directory: "logs/"
+    name: "current.log"
+    size: 20
+  app:
+    port: 8000
+prod:
+  db:
+    name: Exam_grading
+    user: postgres
+    password: 1234
+    port: 5431
+    host: localhost
+  log:
+    directory: "logs/"
+    name: "current.log"
+    size: 20
+  app:
+    port: 8000

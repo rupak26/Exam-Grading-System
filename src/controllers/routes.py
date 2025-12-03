@@ -1,94 +1,63 @@
-from fastapi import APIRouter , HTTPException
-from ..configuration.database_config import get_db_connection
-from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
-from fastapi.responses import RedirectResponse, FileResponse , HTMLResponse
-from fastapi.templating import Jinja2Templates
-from ..utility import utilities
-
-import os 
-import uuid
-
 import os
+import uuid
 from pathlib import Path
-
-###########################
-# Route handlers          #
-###########################
-
+from fastapi import APIRouter , HTTPException , Request
+from configuration.database_config import get_cursor
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse, FileResponse , HTMLResponse
+from ..utility import utilities
+from services import service
+from repository import repository
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 uploads = BASE_DIR / "uploads"
 uploads.mkdir(parents=True, exist_ok=True)
 
-router = APIRouter()
+import logging 
+logger = logging.getLogger("routers.blog")
 
-#Checked
+
+router = APIRouter(
+    prefix = "/api/v1" ,
+    tags = ['Grading_Endpoints'],
+)
+
 @router.get("/")
 async def index(request: Request):
-    """Render the home page listing all exams."""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id, title, subject FROM exams ORDER BY id DESC")
-    exams = cur.fetchall()
+    conn , cursor = get_cursor()
+    cursor.execute("SELECT id, title, subject FROM exams ORDER BY id DESC")
+    exams = cursor.fetchall()
     conn.close()
+    logger.info(f"Checked")
     return templates.TemplateResponse(
         "index.html",
         {"request": request, "exams": exams},
     )
 
-#checked
 @router.get("/exams/new")
 async def new_exam_form(request: Request):
-    """Display a form to create a new exam."""
+    logger.info(f"get exam list")
     return templates.TemplateResponse("create_exam.html", {"request": request})
 
-#checked
 @router.post("/exams/new",response_class=HTMLResponse)
 async def create_exam(request: Request):
-    """Persist a new exam to the database and redirect to its page."""
-    # Parse a standard URL-encoded form.  Using request.form() here does
-    # not require python-multipart when the content-type is
-    # routerlication/x-www-form-urlencoded (the default for HTML forms).
-    form = await request.form()
-    title = form.get("title", "").strip()
-    subject = form.get("subject", "").strip()
-    instructions = form.get("instructions", "").strip()
-    if not title or not subject:
-        raise HTTPException(status_code=400, detail="Title and subject are required")
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO exams (title, subject, instructions) VALUES (?, ?, ?)",
-        (title, subject, instructions),
-    )
-    exam_id = cur.lastrowid
-    conn.commit()
-    conn.close()
-    return RedirectResponse(url=f"/exams/{exam_id}", status_code=303)
+    logger.info(f"create exam")
+    return await service.create_exams(request)
+   
 
-#checked
+
 @router.get("/exams/{exam_id}")
 async def exam_detail(request: Request, exam_id: int):
-    """Show details for a specific exam including questions and students."""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM exams WHERE id = ?", (exam_id,))
-    exam = cur.fetchone()
+    exam = await repository.get_exams(exam_id)
     if exam is None:
-        conn.close()
         raise HTTPException(status_code=404, detail="Exam not found")
-    # Fetch questions and students
-    cur.execute("SELECT * FROM questions WHERE exam_id = ? ORDER BY id", (exam_id,))
-    questions = cur.fetchall()
-    cur.execute("SELECT * FROM students WHERE exam_id = ? ORDER BY id", (exam_id,))
-    students = cur.fetchall()
-    # Count uploaded sheets for each student
+    questions = await repository.get_questons(exam_id)
+    students = await repository.get_students(exam_id)
     sheet_counts = {}
     for student in students:
-        cur.execute("SELECT COUNT(*) FROM answer_sheets WHERE student_id = ?", (student["id"],))
-        sheet_counts[student["id"]] = cur.fetchone()[0]
-    conn.close()
+        sheet_data = await repository.get_data(student)
+        sheet_counts[student["id"]] = sheet_data
     return templates.TemplateResponse(
         "exam_detail.html",
         {
@@ -100,7 +69,6 @@ async def exam_detail(request: Request, exam_id: int):
         },
     )
 
-#checked
 @router.post("/exams/{exam_id}/questions")
 async def add_question(request: Request, exam_id: int):
     """Add a new question to an existing exam."""
@@ -114,64 +82,46 @@ async def add_question(request: Request, exam_id: int):
         raise HTTPException(status_code=400, detail="Point value must be a number")
     if not text or not ideal_answer:
         raise HTTPException(status_code=400, detail="Question text and ideal answer are required")
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO questions (exam_id, text, ideal_answer, point_value) VALUES (?, ?, ?, ?)",
+    conn , cursor = get_cursor()
+    cursor.execute(
+        "INSERT INTO questions (exam_id, text, ideal_answer, point_value) VALUES (%s, %s, %s, %s)",
         (exam_id, text, ideal_answer, point_value_float),
     )
     conn.commit()
     conn.close()
     return RedirectResponse(url=f"/exams/{exam_id}", status_code=303)
 
-#checked
 @router.post("/exams/{exam_id}/students")
 async def add_student(request: Request, exam_id: int):
-    """Add a new student to the exam roster."""
     form = await request.form()
     name = form.get("name", "").strip()
     if not name:
         raise HTTPException(status_code=400, detail="Student name is required")
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO students (exam_id, name) VALUES (?, ?)",
+    conn , cursor = get_cursor()
+    cursor.execute(
+        "INSERT INTO students (exam_id, name) VALUES (%s, %s)",
         (exam_id, name),
     )
     conn.commit()
     conn.close()
     return RedirectResponse(url=f"/exams/{exam_id}", status_code=303)
 
-
 @router.get("/answer_sheets/{sheet_id}/download")
 async def download_answer_sheet(sheet_id: int):
     """Allow the user to download the original uploaded PDF file."""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT filename FROM answer_sheets WHERE id = ?", (sheet_id,))
-    row = cur.fetchone()
+    conn , cursor = get_cursor()
+    cursor.execute("SELECT filename FROM answer_sheets WHERE id = %s", (sheet_id,))
+    row = cursor.fetchone()
     conn.close()
     if row is None:
         raise HTTPException(status_code=404, detail="File not found")
     file_path = uploads / row["filename"]
     return FileResponse(path=file_path, filename=file_path.name, media_type="routerlication/pdf")
 
-
-#checked
 @router.post("/exams/{exam_id}/upload")
 async def upload_answer_sheet(request: Request, exam_id: int):
-    """Handle PDF upload for a student's answer sheet.
-
-    This implementation manually parses the multipart/form-data body
-    because python-multipart is not available in this environment.  It
-    expects two fields: ``student_id`` (the integer ID of the student)
-    and ``file`` (the PDF upload).  The file is stored on disk and
-    evaluation is performed immediately.
-    """
-    # Read the raw request body
     body = await request.body()
     content_type = request.headers.get("content-type", "")
-    # Extract boundary
     boundary_marker = "boundary="
     if boundary_marker not in content_type:
         raise HTTPException(status_code=400, detail="Invalid multipart request")
@@ -184,7 +134,6 @@ async def upload_answer_sheet(request: Request, exam_id: int):
     for part in parts:
         if not part or part == b"--\r\n" or part == b"--":
             continue
-        # Trim CRLF at the start and end
         part = part.strip(b"\r\n")
         # Split headers and content
         header_end = part.find(b"\r\n\r\n")
@@ -223,7 +172,6 @@ async def upload_answer_sheet(request: Request, exam_id: int):
         student_id = int(student_id_bytes.decode().strip())
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid student_id")
-    # Validate file
     file_field = fields.get("file")
     if not isinstance(file_field, dict) or "filename" not in file_field:
         raise HTTPException(status_code=400, detail="Missing file field")
@@ -231,19 +179,16 @@ async def upload_answer_sheet(request: Request, exam_id: int):
     content_bytes: bytes = file_field["content"]
     if not filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
-    # Generate unique filename and save
     unique_name = f"{uuid.uuid4().hex}_{os.path.basename(filename)}"
     dest_path = uploads / unique_name
     with open(dest_path, "wb") as f:
         f.write(content_bytes)
-    # Record in database
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO answer_sheets (student_id, filename) VALUES (?, ?)",
+    conn , cursor = get_cursor()
+    cursor.execute(
+        "INSERT INTO answer_sheets (student_id, filename) VALUES (%s, %s)",
         (student_id, unique_name),
     )
-    sheet_id = cur.lastrowid
+    sheet_id = cursor.lastrowid
     conn.commit()
     conn.close()
     # ======================================= Evaluate the sheet =============================================
@@ -253,30 +198,13 @@ async def upload_answer_sheet(request: Request, exam_id: int):
         print(f"Error evaluating sheet {sheet_id}: {e}")
     return RedirectResponse(url=f"/exams/{exam_id}", status_code=303)
 
-#not checked
 @router.get("/exams/{exam_id}/results")
 async def exam_results(request: Request, exam_id: int):
-    """Display detailed results for all students in an exam."""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    # Get exam information
-    cur.execute("SELECT * FROM exams WHERE id = ?", (exam_id,))
-    exam = cur.fetchone()
+    exam = await repository.get_exams(exam_id)
     if exam is None:
-        conn.close()
         raise HTTPException(status_code=404, detail="Exam not found")
-    # Get students and their results
-    cur.execute(
-        """
-        SELECT students.id AS student_id, students.name, answer_sheets.id AS sheet_id, answer_sheets.total_score
-        FROM students
-        LEFT JOIN answer_sheets ON students.id = answer_sheets.student_id
-        WHERE students.exam_id = ?
-        ORDER BY students.id
-        """,
-        (exam_id,),
-    )
-    rows = cur.fetchall()
+
+    rows = await repository.get_students_results(exam_id)
     # Build a list grouped by students; each student may have multiple sheets
     students = {}
     for row in rows:
@@ -285,7 +213,7 @@ async def exam_results(request: Request, exam_id: int):
             students[sid] = {"name": row["name"], "sheets": []}
         if row["sheet_id"] is not None:
             students[sid]["sheets"].append({"id": row["sheet_id"], "total_score": row["total_score"]})
-    conn.close()
+
     return templates.TemplateResponse(
         "results.html",
         {
@@ -295,40 +223,15 @@ async def exam_results(request: Request, exam_id: int):
         },
     )
 
-#checked
 @router.get("/answer_sheets/{sheet_id}")
 async def sheet_detail(request: Request, sheet_id: int):
     """Show detailed evaluation for a single answer sheet."""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    # Retrieve sheet
-    cur.execute(
-        """
-        SELECT answer_sheets.*, students.name AS student_name, exams.title AS exam_title, exams.id AS exam_id
-        FROM answer_sheets
-        JOIN students ON answer_sheets.student_id = students.id
-        JOIN exams ON students.exam_id = exams.id
-        WHERE answer_sheets.id = ?
-        """,
-        (sheet_id,),
-    )
-    sheet = cur.fetchone()
+    sheet = await repository.get_sheet(sheet_id)
     if sheet is None:
-        conn.close()
         raise HTTPException(status_code=404, detail="Answer sheet not found")
     # Fetch question evaluations
-    cur.execute(
-        """
-        SELECT questions.text AS question_text, questions.ideal_answer, answers.student_answer, answers.score
-        FROM answers
-        JOIN questions ON answers.question_id = questions.id
-        WHERE answers.answer_sheet_id = ?
-        ORDER BY questions.id
-        """,
-        (sheet_id,),
-    )
-    evaluations = cur.fetchall()
-    conn.close()
+    
+    evaluations = repository.get_evaluations(sheet_id)
     return templates.TemplateResponse(
         "sheet_detail.html",
         {
@@ -339,35 +242,20 @@ async def sheet_detail(request: Request, sheet_id: int):
         },
     )
 
-#Problem is here
 @router.get("/exams/{exam_id}/export")
 async def export_results(exam_id: int):
     """Export all results for an exam as a CSV file."""
     import csv
     from io import StringIO
-    conn = get_db_connection()
-    cur = conn.cursor()
+    conn , cursor = get_cursor()
     # Get exam and question count to compute maximum possible score
-    cur.execute("SELECT title FROM exams WHERE id = ?", (exam_id,))
-    exam = cur.fetchone()
+    exam = await repository.get_exams(exam_id)
     if exam is None:
-        conn.close()
         raise HTTPException(status_code=404, detail="Exam not found")
-    cur.execute("SELECT SUM(point_value) FROM questions WHERE exam_id = ?", (exam_id,))
-    total_possible = cur.fetchone()[0] or 0.0
+    cursor.execute("SELECT SUM(point_value) FROM questions WHERE exam_id = ?", (exam_id,))
+    total_possible = cursor.fetchone()[0] or 0.0
     # Retrieve scores
-    cur.execute(
-        """
-        SELECT students.name, answer_sheets.total_score
-        FROM students
-        LEFT JOIN answer_sheets ON students.id = answer_sheets.student_id
-        WHERE students.exam_id = ?
-        ORDER BY students.id
-        """,
-        (exam_id,),
-    )
-    rows = cur.fetchall()
-    conn.close()
+    rows = await repository.retrieve_scores(exam_id)
     csv_io = StringIO()
     writer = csv.writer(csv_io)
     writer.writerow(["Student", "Score", "Out of"])

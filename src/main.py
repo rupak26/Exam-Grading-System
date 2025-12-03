@@ -29,8 +29,8 @@ from fastapi import FastAPI
 from datetime import datetime
 from pathlib import Path
 
-from .configuration.database_config import get_db_connection , initialise_database
-from .controllers import routers
+from ..configuration.database_config import get_db_connection , initialise_database
+from controllers import routers
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
