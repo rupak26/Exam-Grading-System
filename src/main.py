@@ -1,5 +1,5 @@
 """
-grade_buddy_ai
+Exam Grading System 
 ================
 
 This module defines a simple web application for managing and grading
